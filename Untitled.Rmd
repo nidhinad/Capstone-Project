@@ -1,0 +1,82 @@
+---
+title: "Poisson Regression & Overdispersion"
+author: "Nidhin"
+date: "10/29/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#Number of ticks on the heads of red grouse chicks sampled in the field (grouseticks) 
+```{r}
+library(lme4)
+data(grouseticks)
+summary(grouseticks)
+
+```
+
+```{r}
+# INDEX is individual
+head(grouseticks)
+```
+
+#The data are rich in $0$s, but that does not mean they are $0$-inflated. We’ll find out about overdispersion by fitting the Poisson-model and looking at deviance and degrees of freedom (as a rule of thumb):
+```{r}
+attach(grouseticks)
+hist(TICKS, col="grey", border=NA, las=1, breaks=0:90)
+```
+
+#In this case, our residual deviance is $3000$ for $397$ degrees of freedom. The rule of thumb is that the ratio of deviance to df should be $1$, but it is $7.6$, indicating severe overdispersion. This can be done more formally, using either package AER or DHARMa:
+
+```{r}
+plot(TICKS ~ HEIGHT, las=1)
+summary(fmp <- glm(TICKS ~ HEIGHT*YEAR, family=poisson))
+```
+```{r}
+library(AER)
+dispersiontest(fmp)
+```
+#DHARMa works by simulating new data from the fitted model, and then comparing the observed data to those simulated (see DHARMa’s nice vignette for an introduction to the idea).
+```{r}
+library(DHARMa) 
+sim_fmp <- simulateResiduals(fmp, refit=T) 
+testOverdispersion(sim_fmp)
+plotSimulatedResiduals(sim_fmp)
+```
+#“Fixing” overdispersion
+
+#If the variance equals the mean this dispersion statistic should approximate 1.
+#Running an overdispersed Poisson model will generate understated standard errors. Understated standard errors can lead to erroneous conclusions.
+#One of the methods is known as “scaling the standard errors”. 
+#How this works is: the model is run, the dispersion statistic is calculated and then the model standard errors are multiplied by the square root of the dispersion.
+```{r}
+pr <- residuals(fmp,"pearson")
+phi <- sum(pr^2)/df.residual(fmp)
+round(c(phi,sqrt(phi)),4)
+```
+#Another method is quasi poisson method
+#The quasi-families augment the normal families by adding a dispersion parameter.
+#You see that τ is estimated as 11.3, a value similar to those in the overdispersion tests above (as you’d
+expect). The main effect is the substantially larger errors for the estimates (the point estimates do not
+change), and hence potentially changed significances (though not here). (
+
+```{r}
+summary(fmqp <- glm(TICKS ~ YEAR*HEIGHT, family=quasipoisson, data=grouseticks))
+```
+#Different distribution (here: negative binomial)
+#Maybe our distributional assumption was simply wrong, and we choose a different distribution. For Poisson, the most obvious “upgrade” is the negative binomial, which includes in fact a dispersion parameter similar to τ above.
+
+```{r}
+library(MASS)
+summary(fmnb <- glm.nb(TICKS ~ YEAR*HEIGHT, data=grouseticks))
+```
+
+```{r}
+sim_fmnb <- simulateResiduals(fmnb, refit=T, n=99)
+plotSimulatedResiduals(sim_fmnb)
+testOverdispersion(sim_fmnb) # requires refit=T
+```
+

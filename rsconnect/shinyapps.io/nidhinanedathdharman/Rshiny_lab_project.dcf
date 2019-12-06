@@ -1,0 +1,13 @@
+name: Rshiny_lab_project
+title: Rshiny_lab_project
+username:
+account: nidhinanedathdharman
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1570629
+bundleId: 2646423
+url: https://nidhinanedathdharman.shinyapps.io/Rshiny_lab_project/
+when: 1575635567.71251
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: app copy.R|labdata.html|logo.jpg
